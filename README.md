@@ -10,7 +10,7 @@ Este é um projeto **fan-made** que recria o clássico jogo **Rolling Thunder 2*
 
 ## 🧱 Estrutura do Projeto
 
-- `index.html`  
+- `ROM.html`  
   Arquivo único contendo:
   - Código do jogo (JavaScript)
   - Canvas responsivo em 16:9 (398x224)
@@ -21,7 +21,7 @@ Este é um projeto **fan-made** que recria o clássico jogo **Rolling Thunder 2*
 
 ## 🚀 Como Rodar
 
-1. Baixe o arquivo `index.html`.
+1. Baixe o arquivo `ROM.html`.
 2. Abra com qualquer navegador moderno (Chrome, Firefox, Edge...).
 3. Jogue!
 
@@ -73,7 +73,7 @@ Se você for detentor dos direitos e deseja a remoção ou alteração deste con
 
 **Paulo Henrique Santos**  
 Desenvolvedor web apaixonado por jogos retrô e recriações técnicas.  
-Contato: [coloque seu e-mail ou GitHub aqui]
+Contato: paulohcgs1997@outlook.com.br
 
 ---
 
