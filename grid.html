@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebGPU Grid</title>
+    <style>
+      html, body {
+        margin: 0;
+        background: black;
+        overflow: hidden;
+        height: 100%;
+      }
+      canvas {
+        display: block;
+        margin: auto;
+        image-rendering: pixelated;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+
+    <script type="module">
+      const largura = 10;
+      const altura = 10;
+
+      const canvas = document.getElementById("canvas");
+      const adapter = await navigator.gpu?.requestAdapter();
+      const device = await adapter?.requestDevice();
+      const context = canvas.getContext("webgpu");
+
+      if (!device || !context) {
+        alert("WebGPU não suportado neste navegador.");
+        throw new Error("WebGPU não suportado");
+      }
+
+      const format = navigator.gpu.getPreferredCanvasFormat();
+      context.configure({
+        device,
+        format,
+        alphaMode: "opaque"
+      });
+
+      const pixelSize = 10; // Tamanho do pixel virtual (ajuste se quiser)
+      canvas.width = largura * pixelSize;
+      canvas.height = altura * pixelSize;
+
+      // Cria um buffer com cores aleatórias (RGB para cada pixel)
+      const pixelData = new Uint8Array(largura * altura * 4);
+
+      function gerarCoresAleatorias() {
+        for (let i = 0; i < largura * altura; i++) {
+          const r = Math.random() * 255;
+          const g = Math.random() * 255;
+          const b = Math.random() * 255;
+
+          pixelData[i * 4 + 0] = r;
+          pixelData[i * 4 + 1] = g;
+          pixelData[i * 4 + 2] = b;
+          pixelData[i * 4 + 3] = 255; // Alpha fixo
+        }
+      }
+
+      const texture = device.createTexture({
+        size: [largura, altura],
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+      });
+
+      const sampler = device.createSampler({
+        magFilter: "nearest",
+        minFilter: "nearest"
+      });
+
+      const shaderCode = `
+        @group(0) @binding(0) var myTexture: texture_2d<f32>;
+        @group(0) @binding(1) var mySampler: sampler;
+
+        struct VertexOutput {
+          @builtin(position) pos: vec4<f32>,
+          @location(0) uv: vec2<f32>
+        };
+
+        @vertex
+        fn vertex_main(@builtin(vertex_index) VertexIndex : u32) -> VertexOutput {
+          var pos = array<vec2<f32>, 6>(
+            vec2(-1.0, -1.0), vec2(1.0, -1.0), vec2(-1.0, 1.0),
+            vec2(-1.0, 1.0), vec2(1.0, -1.0), vec2(1.0, 1.0)
+          );
+
+          var uv = array<vec2<f32>, 6>(
+            vec2(0.0, 1.0), vec2(1.0, 1.0), vec2(0.0, 0.0),
+            vec2(0.0, 0.0), vec2(1.0, 1.0), vec2(1.0, 0.0)
+          );
+
+          var output: VertexOutput;
+          output.pos = vec4(pos[VertexIndex], 0.0, 1.0);
+          output.uv = uv[VertexIndex];
+          return output;
+        }
+
+        @fragment
+        fn fragment_main(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
+          return textureSample(myTexture, mySampler, uv);
+        }
+      `;
+
+      const shaderModule = device.createShaderModule({
+        code: shaderCode
+      });
+
+      const pipeline = device.createRenderPipeline({
+        layout: "auto",
+        vertex: {
+          module: shaderModule,
+          entryPoint: "vertex_main"
+        },
+        fragment: {
+          module: shaderModule,
+          entryPoint: "fragment_main",
+          targets: [{ format }]
+        },
+        primitive: {
+          topology: "triangle-list"
+        }
+      });
+
+      const bindGroup = device.createBindGroup({
+        layout: pipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: texture.createView() },
+          { binding: 1, resource: sampler }
+        ]
+      });
+
+      function drawFrame() {
+        gerarCoresAleatorias();
+
+        device.queue.writeTexture(
+          { texture },
+          pixelData,
+          { bytesPerRow: largura * 4 },
+          { width: largura, height: altura }
+        );
+
+        const commandEncoder = device.createCommandEncoder();
+        const textureView = context.getCurrentTexture().createView();
+
+        const renderPass = commandEncoder.beginRenderPass({
+          colorAttachments: [{
+            view: textureView,
+            loadOp: "clear",
+            storeOp: "store",
+            clearValue: { r: 0, g: 0, b: 0, a: 1 }
+          }]
+        });
+
+        renderPass.setPipeline(pipeline);
+        renderPass.setBindGroup(0, bindGroup);
+        renderPass.draw(6, 1, 0, 0);
+        renderPass.end();
+
+        device.queue.submit([commandEncoder.finish()]);
+      }
+
+      setInterval(drawFrame, 1); // atualiza a cada ~30ms
+
+      // Clique para fullscreen
+      document.body.addEventListener("click", () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen();
+        }
+      });
+    </script>
+  </body>
+</html>

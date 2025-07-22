@@ -1,0 +1,30 @@
+loadSprite(
+  0x00, // Sprite inicial (índice do primeiro frame)
+  0x05, // Sprite final (índice do último frame)
+  0.5,  // Intervalo em segundos entre os frames (0 para velocidade máxima)
+  3,    // Quantas vezes a animação se repete
+  1,    // O que fazer após terminar: 
+        // 0 = remover imediatamente após a última repetição
+        // 1 = manter o último frame visível por um tempo
+  2     // Tempo (em segundos) que o último frame permanece antes de remover do body (caso pauseAtEnd = 1)
+);
+
+
+// Parar manualmente
+animation.stop();
+
+// Remover da tela imediatamente
+animation.remove();
+
+// Acessar diretamente o <img>
+console.log(animation.element);
+
+/**
+     * Escreve texto dentro de um elemento pelo id usando a fonte indicada.
+     *
+     * @param {number} fontIndex índice da fonte em hex (ex: 0x00)
+     * @param {string} text texto a ser exibido
+     * @param {number} sizePx tamanho em pixel da fonte
+     * @param {number} opacity opacidade entre 0 (transparente) e 1 (opaco)
+     * @param {string} targetId id do elemento onde o texto será inserido
+     */
